@@ -6,9 +6,6 @@
 
 #define TETRIS_START_DROP_TIME 300
 
-#define TETRIS_GAME_SUSPEND_QUIT  1
-#define TETRIS_GAME_SUSPEND_PAUSE 2
-
 #define TETRIS_SHAPE_LEFT   1
 #define TETRIS_SHAPE_RIGHT  2
 #define TETRIS_SHAPE_ROTATE 3
@@ -80,11 +77,11 @@ short** TETRIS_board_create()
 {
 	short **board;
 	int i;
-	
+
 	board = (short **)calloc(TETRIS_ROWS, sizeof(short*));
 	for (i=0; i<TETRIS_ROWS; i++)
 		board[i] = (short *)calloc(TETRIS_COLS, sizeof(short));
-	
+
 	return board;
 }
 
@@ -99,7 +96,7 @@ void TETRIS_board_destroy(short** board)
 
 void TETRIS_board_zero(short** board)
 {
-	int r,c;
+	int r;
 
 	for (r=0; r<TETRIS_ROWS; r++)
 		bzero(board[r], sizeof(short)*TETRIS_COLS);
@@ -119,11 +116,11 @@ void TETRIS_board_draw(short** board, short** mask)
 {
 	int rt,rc,r,c,scr_rows,scr_cols,row_offset,col_offset;
 	TETRIS_shape_color color;
-	
+
 	getmaxyx(stdscr, scr_rows, scr_cols);
 	row_offset = 2;
 	col_offset = (int)((scr_cols/2)-(TETRIS_COLS/2));
-	
+
 	for (r=0; r<TETRIS_ROWS; r++) {
 		for (c=0; c<TETRIS_COLS; c++) {
 			color = board[r][c] | mask[r][c];
@@ -151,7 +148,7 @@ void TETRIS_board_draw(short** board, short** mask)
 int TETRIS_board_get_top_row(short** board, int from_row)
 {
 	int i,j,top_row,complete;
-	
+
 	i = top_row = from_row;
 	while (i >= 0) {
 		complete = 1;
@@ -172,11 +169,11 @@ int TETRIS_board_get_top_row(short** board, int from_row)
 
 int TETRIS_board_count_full_rows(short** board, int top_row)
 {
-	int r,rr,c,full,count,coalc;
+	int r,rr,c,full,count;
 	int empty[TETRIS_ROWS];
-	
+
 	bzero(&empty, sizeof(empty));
-	
+
 	// Travel up, from TETRIS_ROWS - 1 to check_row.
 	count = 0;
 	for (r=TETRIS_ROWS - 1; r>=top_row; r--) {
@@ -192,7 +189,7 @@ int TETRIS_board_count_full_rows(short** board, int top_row)
 			empty[r] = 1;
 			count++;
 		}
-		
+
 	}
 	// Coalesce the rows now.
 	r=TETRIS_ROWS - 1;
@@ -217,7 +214,7 @@ int TETRIS_update_score(short** board, int top_row)
 
 	rem_rows = TETRIS_board_count_full_rows(board, 0);
 	drop_bonus = _DROP_FLAG_ ? 500 : 0;
-	
+
 	if (rem_rows > 0)
 		_STREAK_++;
 
@@ -271,11 +268,11 @@ struct TETRIS_shape* TETRIS_shape_copy_def(struct TETRIS_shape* copy, TETRIS_sha
 struct TETRIS_shape* TETRIS_shape_rotate(struct TETRIS_shape* shape)
 {
 	// A[x][y] <- A[shape->max_w-y][x]
-	int r, c; 
-	short T[TETRIS_SHAPE_ROWS][TETRIS_SHAPE_COLS], t, diff;
+	int r, c;
+	short T[TETRIS_SHAPE_ROWS][TETRIS_SHAPE_COLS], diff;
 
 	for (r=0; r<TETRIS_SHAPE_ROWS; r++)
-		for (c=0; c<TETRIS_SHAPE_COLS; c++) 
+		for (c=0; c<TETRIS_SHAPE_COLS; c++)
 			T[r][c] = shape->map[TETRIS_SHAPE_COLS-1-c][r];
 	for (r=0; r<TETRIS_SHAPE_ROWS; r++)
 		memcpy(shape->map[r], &T[r], sizeof(short)*TETRIS_SHAPE_COLS);
@@ -283,7 +280,7 @@ struct TETRIS_shape* TETRIS_shape_rotate(struct TETRIS_shape* shape)
 	// Left-aligns the shape with its TETRIS_SHAPE_ROWS*TETRIS_SHAPE_COLS bounding box.
 	while (1) {
 		if ( ! shape->map[0][0] && ! shape->map[1][0] && ! shape->map[2][0] && ! shape->map[3][0]) {
-			for (r=0; r<TETRIS_SHAPE_ROWS; r++) 
+			for (r=0; r<TETRIS_SHAPE_ROWS; r++)
 				for (c=0; c<TETRIS_SHAPE_COLS-1; c++)
 					SWAP(short, shape->map[r][c], shape->map[r][c+1]);
 		} else {
@@ -307,7 +304,11 @@ struct TETRIS_shape* TETRIS_shape_rotate(struct TETRIS_shape* shape)
 
 // Shape collision detection functions
 
-int TETRIS_shape_test_collision(short** board, short **mask, struct TETRIS_shape* shape, short offset_row, short offset_col)
+int TETRIS_shape_test_collision(short** board
+                               ,short **mask
+                               ,struct TETRIS_shape* shape
+                               ,short offset_row
+                               ,short offset_col)
 {
 	struct TETRIS_shape copy;
 	int r = 0, c = 0;
@@ -316,7 +317,7 @@ int TETRIS_shape_test_collision(short** board, short **mask, struct TETRIS_shape
 	TETRIS_board_zero(mask);
 	copy.row += offset_row;
 	copy.col += offset_col;
-	TETRIS_board_set(mask, &copy);	
+	TETRIS_board_set(mask, &copy);
 
 	for (r=copy.row; r<copy.row+TETRIS_SHAPE_ROWS && r<TETRIS_ROWS; r++)
 		for (c=copy.col; c<copy.col+TETRIS_SHAPE_COLS && c<TETRIS_COLS; c++)
@@ -328,17 +329,20 @@ int TETRIS_shape_test_collision(short** board, short **mask, struct TETRIS_shape
 
 int TETRIS_shape_down_OK(short** board, short **mask, struct TETRIS_shape* shape)
 {
-	return shape->row + shape->max_h < TETRIS_ROWS && ! TETRIS_shape_test_collision(board, mask, shape, 1, 0);
+	return shape->row + shape->max_h < TETRIS_ROWS &&
+         !TETRIS_shape_test_collision(board, mask, shape, 1, 0);
 }
 
 int TETRIS_shape_right_OK(short** board, short **mask, struct TETRIS_shape* shape)
 {
-	return shape->col < TETRIS_COLS - shape->max_w && ! TETRIS_shape_test_collision(board, mask, shape, 0, 1);
+	return shape->col < TETRIS_COLS - shape->max_w &&
+         !TETRIS_shape_test_collision(board, mask, shape, 0, 1);
 }
 
 int TETRIS_shape_left_OK(short** board, short **mask, struct TETRIS_shape* shape)
 {
-	return shape->col > 0 && ! TETRIS_shape_test_collision(board, mask, shape, 0, -1);
+	return shape->col > 0 &&
+         !TETRIS_shape_test_collision(board, mask, shape, 0, -1);
 }
 
 int TETRIS_shape_rotate_OK(short** board, short **mask, struct TETRIS_shape* shape)
@@ -372,7 +376,7 @@ void TETRIS_init()
 	noecho();
 	cbreak();
 	keypad(stdscr, TRUE);
-	
+
 	start_color();
 
 	init_pair(TETRIS_COLOR_RED, COLOR_RED, COLOR_RED);
@@ -385,7 +389,7 @@ void TETRIS_init()
 
 	MAIN  = TETRIS_board_create();
 	MASK1 = TETRIS_board_create();
-	MASK2 = TETRIS_board_create();	
+	MASK2 = TETRIS_board_create();
 }
 
 void TETRIS_start()
@@ -410,9 +414,10 @@ int TETRIS_ask_quit()
 			case 'q': return 1;
 		}
 	}
+  return 0;
 }
 
-int TETRIS_wait_unpause()
+void TETRIS_wait_unpause()
 {
 	mvprintw(1, 0, "*** Game Paused. Press any key to resume. ***");
 	timeout(0);
@@ -428,128 +433,129 @@ void TETRIS_destroy()
 }
 
 int main(int argc, char** argv)
-{	
+{
 	struct TETRIS_shape shape;
-	int key,ticks,action_ticks,top_row,full_row,allow_drop,force_drop,suspend;
+	int key,ticks,action_ticks,top_row,full_row,allow_drop,force_drop,skip_tick;
 
 	TETRIS_init();
 
 restart:
-	suspend = 0;
-	while ( ! suspend) {
+  TETRIS_start();
 
-		TETRIS_start();
+  key = ticks = skip_tick = action_ticks = force_drop = 0;
+  full_row = top_row = TETRIS_ROWS - 1;
 
-		key = ticks = action_ticks = suspend = force_drop = 0;
-		full_row = top_row = TETRIS_ROWS - 1;
-
-		// Set getch() to non-blocking mode. This also controls the "drop time" of a tetromino.
-		timeout(_DROP_TIME_);
+  // Set getch() to non-blocking mode. This also controls the "drop time"
+  // of a tetromino.
+  timeout(_DROP_TIME_);
 
 next_piece:
-		// Get initial piece
-		TETRIS_shape_copy_random(&shape);
-		shape.col = TETRIS_COLS / 2;
+  // Get initial piece
+  TETRIS_shape_copy_random(&shape);
+  shape.col = TETRIS_COLS / 2;
 
-		while (top_row >= 0 && ! suspend) {
+  while (top_row >= 0) {
 
-			TETRIS_board_zero(MASK2);
+    TETRIS_board_zero(MASK2);
 
-			key = getch();
-			allow_drop = 1;
+    key = getch();
+    allow_drop = 1;
+    skip_tick = 0;
 
-			if (key != ERR) {
-				force_drop =  ! (action_ticks % TETRIS_MAX_REPEAT);
-				switch (key) {
-					case KEY_UP: case 65: /* OSX 10.4 */ case 'r': case 'x': case ' ':
-						if (TETRIS_shape_rotate_OK(MAIN, MASK2, &shape))
-							TETRIS_shape_rotate(&shape);
-						allow_drop = 0;
-						action_ticks++;
-						if (force_drop) 
-							goto piece_down;
-						else
-							break;
-					case KEY_LEFT: case 68: /* OSX 10.4 */ case 'a':
-						if (TETRIS_shape_left_OK(MAIN, MASK2, &shape))
-							shape.col--;
-						allow_drop = 0;
-						action_ticks++;			
-						if (force_drop) 
-							goto piece_down;
-						else
-							break;
-					case KEY_RIGHT: case 67: /* OSX 10.4 */ case 's':
-						if (TETRIS_shape_right_OK(MAIN, MASK2, &shape))
-							shape.col++;
-						allow_drop = 0;
-						action_ticks++;			
-						if (force_drop) 
-							goto piece_down;
-						else
-							break;
-					case KEY_DOWN: case 66: /* OSX 1.0 */ case 'z':
-					piece_down:
-						if (allow_drop)
-							TETRIS_set_drop_flag();
-						if (TETRIS_shape_down_OK(MAIN, MASK2, &shape)) {
-							shape.row++;
-						} else {
-							// Shape is done; add to MAIN
-							TETRIS_board_set(MAIN, &shape);
-							top_row = TETRIS_board_get_top_row(MAIN, top_row);
-							TETRIS_update_score(MAIN, top_row);
-							TETRIS_clear_drop_flag();
-							goto next_piece;
-						}
-						break;
+    if (key != ERR) {
+      force_drop = ! (action_ticks % TETRIS_MAX_REPEAT);
+      switch (key) {
+        case KEY_UP:
+        case 65: /* OSX 10.4 */
+        case 'r':
+        case 'x':
+        case ' ':
+          if (TETRIS_shape_rotate_OK(MAIN, MASK2, &shape))
+            TETRIS_shape_rotate(&shape);
+          allow_drop = 0;
+          action_ticks++;
+          if (force_drop)
+            goto piece_down;
+          else
+            break;
+        case KEY_LEFT:
+        case 68: /* OSX 10.4 */
+        case 'a':
+          if (TETRIS_shape_left_OK(MAIN, MASK2, &shape))
+            shape.col--;
+          allow_drop = 0;
+          action_ticks++;
+          if (force_drop)
+            goto piece_down;
+          else
+            break;
+        case KEY_RIGHT:
+        case 67: /* OSX 10.4 */
+        case 's':
+          if (TETRIS_shape_right_OK(MAIN, MASK2, &shape))
+            shape.col++;
+          allow_drop = 0;
+          action_ticks++;
+          if (force_drop)
+            goto piece_down;
+          else
+            break;
+        case KEY_DOWN:
+        case 66: /* OSX 1.0 */
+        case 'z':
+          piece_down:
+            if (allow_drop)
+              TETRIS_set_drop_flag();
+            if (TETRIS_shape_down_OK(MAIN, MASK2, &shape)) {
+              shape.row++;
+            } else {
+              // Shape is done; add to MAIN
+              TETRIS_board_set(MAIN, &shape);
+              top_row = TETRIS_board_get_top_row(MAIN, top_row);
+              TETRIS_update_score(MAIN, top_row);
+              TETRIS_clear_drop_flag();
+              goto next_piece;
+            }
+            break;
+        case 'p':
+          TETRIS_wait_unpause();
+          skip_tick = 1;
+          continue;
+        case 'q':
+          if (TETRIS_ask_quit()) {
+            goto quit;
+          } else {
+            goto restart;
+          }
+          break;
+      }
 
-					case 'p':
-						suspend = TETRIS_GAME_SUSPEND_PAUSE;
-						break;
-					case 'q':
-						suspend = TETRIS_GAME_SUSPEND_QUIT;
-						break;
-				}
-				
-			// Invalid key / tick w/o keypress occurred.
-			} else {
-				if (TETRIS_shape_down_OK(MAIN, MASK2, &shape)) {
-					shape.row++;
-				} else {
-					// Shape is done; add to MAIN
-					TETRIS_board_set(MAIN, &shape);
-					top_row = TETRIS_board_get_top_row(MAIN, top_row);
-					TETRIS_update_score(MAIN, top_row);
-					TETRIS_clear_drop_flag();
-					goto next_piece;
-				}
-			}
-	
-			//mvprintw(1, 0, "Ticks: %d [%d]", ticks, action_ticks);
-			mvprintw(2, 0, "Score: %d", _SCORE_);
-			mvprintw(3, 0, "Streak: %d", _STREAK_);
-			mvprintw(4, 0, "Level: %d", _LEVEL_);
-			//mvprintw(5, 0, "{key=%d, top-row=%d; shape=(%d,%d)}", key, top_row, shape.row, shape.col);
-			
-			TETRIS_board_zero(MASK1);
-			TETRIS_board_set(MASK1, &shape);
-			TETRIS_board_draw(MAIN, MASK1);
+    // Invalid key / tick w/o keypress occurred.
+    } else if (TETRIS_shape_down_OK(MAIN, MASK2, &shape)) {
+      shape.row++;
+    } else {
+      // Shape is done; add to MAIN
+      TETRIS_board_set(MAIN, &shape);
+      top_row = TETRIS_board_get_top_row(MAIN, top_row);
+      TETRIS_update_score(MAIN, top_row);
+      TETRIS_clear_drop_flag();
+      goto next_piece;
+    }
 
-			ticks++;
-		}
-		if (suspend == TETRIS_GAME_SUSPEND_QUIT) {
-			if (TETRIS_ask_quit()) {
-				goto quit;
-			} else {
-				goto restart;
-			}
-		} else if (suspend == TETRIS_GAME_SUSPEND_PAUSE) {
-			TETRIS_wait_unpause();
-			suspend = 0;
-		}
-	}
-	
+    //mvprintw(1, 0, "Ticks: %d [%d]", ticks, action_ticks);
+    mvprintw(2, 0, "Score: %d", _SCORE_);
+    mvprintw(3, 0, "Streak: %d", _STREAK_);
+    mvprintw(4, 0, "Level: %d", _LEVEL_);
+    //mvprintw(5, 0, "{key=%d, top-row=%d; shape=(%d,%d)}", key, top_row, shape.row, shape.col);
+
+    TETRIS_board_zero(MASK1);
+    TETRIS_board_set(MASK1, &shape);
+    TETRIS_board_draw(MAIN, MASK1);
+
+    if (!skip_tick)
+      ticks++;
+  }
+
 quit:
 	TETRIS_destroy();
 
